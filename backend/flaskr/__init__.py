@@ -13,21 +13,31 @@ def create_app(test_config=None):
   app = Flask(__name__)
   setup_db(app)
   
-  '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-  '''
+  CORS(app, resources={r"/*": {"origins": "*"}})
 
-  '''
-  @TODO: Use the after_request decorator to set Access-Control-Allow
-  '''
+  @app.after_request
+  def after_request()
+  response.headers.add('Access-Control-Allow-Headers',
+                             'Content-Type,Authorization,true')
+  response.headers.add('Access-Control-Allow-Methods',
+                             'GET,PUT,POST,DELETE,OPTIONS,PATCH')
+  return response
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests 
-  for all available categories.
-  '''
+  @app.route('/categories', methods=['GET'])
+  def get_all_categories():
+    try:
+      categories = Category.query.all()
+      category_response = {category.id : category.type.format() for category in categories}
+      return jsonify({
+        'success': True,
+        'categories': categories
+      })
+    except:
+      abort(500)
 
-
+  @app.route('/categories', methods=['GET'])
+  def get_categories():
+    
   '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
