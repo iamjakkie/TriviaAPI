@@ -36,8 +36,25 @@ def create_app(test_config=None):
       abort(500)
 
   @app.route('/categories', methods=['GET'])
-  def get_categories():
-    
+  def get_questions():
+    try:
+      questions = Question.query.order_by(Question.id).all()
+      total_questions = len(questions)
+      category_query = Category.query.order_by(Category.id).all()
+      current_questions = paginate_questions(
+          request, questions,
+          QUESTIONS_PER_PAGE)
+      if (len(current_questions) == 0):
+          abort(404)
+      categories = {}
+      for category in category_query:
+          categories[category.id] = category.type
+      return jsonify({
+          'success': True,
+          'questions': current_questions,
+          'totalQuestions': total_questions,
+          'categories': categories
+      })
   '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
