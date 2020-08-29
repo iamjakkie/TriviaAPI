@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-from models import setup_db, Question, Category
+from models import setup_db, Question, Category, paginate_questions
 
 QUESTIONS_PER_PAGE = 10
 
@@ -16,45 +16,40 @@ def create_app(test_config=None):
   CORS(app, resources={r"/*": {"origins": "*"}})
 
   @app.after_request
-  def after_request()
-  response.headers.add('Access-Control-Allow-Headers',
-                             'Content-Type,Authorization,true')
-  response.headers.add('Access-Control-Allow-Methods',
-                             'GET,PUT,POST,DELETE,OPTIONS,PATCH')
-  return response
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers',
+                              'Content-Type,Authorization,true')
+    response.headers.add('Access-Control-Allow-Methods',
+                              'GET,PUT,POST,DELETE,OPTIONS,PATCH')
+    return response
 
   @app.route('/categories', methods=['GET'])
   def get_all_categories():
-    try:
-      categories = Category.query.all()
-      category_response = {category.id : category.type.format() for category in categories}
-      return jsonify({
-        'success': True,
-        'categories': categories
-      })
-    except:
-      abort(500)
+    categories = Category.query.all()
+    category_response = {category.id : category.type.format() for category in categories}
+    return jsonify({
+      'success': True,
+      'categories': category_response
+    })
 
-  @app.route('/categories', methods=['GET'])
+  @app.route('/questions', methods=['GET'])
   def get_questions():
-    try:
-      questions = Question.query.order_by(Question.id).all()
-      total_questions = len(questions)
-      category_query = Category.query.order_by(Category.id).all()
-      current_questions = paginate_questions(
-          request, questions,
-          QUESTIONS_PER_PAGE)
-      if (len(current_questions) == 0):
-          abort(404)
-      categories = {}
-      for category in category_query:
-          categories[category.id] = category.type
-      return jsonify({
-          'success': True,
-          'questions': current_questions,
-          'totalQuestions': total_questions,
-          'categories': categories
-      })
+    questions = Question.query.order_by(Question.id).all()
+    total_questions = len(questions)
+    category_query = Category.query.order_by(Category.id).all()
+    current_questions = paginate_questions(
+        request, questions,
+        QUESTIONS_PER_PAGE)
+    if (len(current_questions) == 0):
+        abort(404)
+    categories = {category.id : category.type.format() for category in category_query}
+    return jsonify({
+        'success': True,
+        'questions': current_questions,
+        'totalQuestions': total_questions,
+        'categories': categories
+    })
+      
   '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
@@ -76,16 +71,43 @@ def create_app(test_config=None):
   This removal will persist in the database and when you refresh the page. 
   '''
 
-  '''
-  @TODO: 
-  Create an endpoint to POST a new question, 
-  which will require the question and answer text, 
-  category, and difficulty score.
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  def deleteQuestion(question_id):
+      try:
+          question = Question.query.get(question_id)
+          question.delete()
+          return jsonify({
+            'success': True,
+            'message': "Question successfully deleted",
+            'delete_id': question_id
+          })
+      except Exception:
+          abort(422)
 
-  TEST: When you submit a question on the "Add" tab, 
-  the form will clear and the question will appear at the end of the last page
-  of the questions list in the "List" tab.  
-  '''
+  @app.route('/questions', methods=['POST'])
+  def createQuestion():
+    questionData = request.get_json()
+    question = questionData.get('question')
+    answer = questionData.get('answer')
+    difficulty = questionData.get('difficulty')
+    category = questionData.get('category')
+    if ((question == '') or (answer == '') or
+            (difficulty == '') or (category == '')):
+        abort(422)
+    try:
+      new_question = Question(question=question, answer=answer,
+                                difficulty=difficulty,
+                                category=category)
+      new_question.insert()
+      return jsonify({
+        'success': True,
+        'question': question,
+        'answer': answer,
+        'difficulty': difficulty,
+        'category': category
+      })
+    except Exception:
+        abort(422)
 
   '''
   @TODO: 
@@ -120,11 +142,37 @@ def create_app(test_config=None):
   and shown whether they were correct or not. 
   '''
 
-  '''
-  @TODO: 
-  Create error handlers for all expected errors 
-  including 404 and 422. 
-  '''
+  @app.errorhandler(404)
+  def not_found(error):
+      return jsonify({
+          "success": False,
+          "error": 404,
+          "message": "Resource not found"
+      }), 404
+
+  @app.errorhandler(422)
+  def unprocessable(error):
+      return jsonify({
+          "success": False,
+          "error": 422,
+          "message": "Unprocessable"
+      }), 422
+
+  @app.errorhandler(400)
+  def bad_request(error):
+      return jsonify({
+          "success": False,
+          "error": 400,
+          "message": "Bad Request"
+      }), 400
+
+  @app.errorhandler(500)
+  def bad_request(error):
+      return jsonify({
+          "success": False,
+          "error": 500,
+          "message": "Internal Server Error"
+      }), 500
   
   return app
 
