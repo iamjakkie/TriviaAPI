@@ -49,27 +49,6 @@ def create_app(test_config=None):
         'totalQuestions': total_questions,
         'categories': categories
     })
-      
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests for questions, 
-  including pagination (every 10 questions). 
-  This endpoint should return a list of questions, 
-  number of total questions, current category, categories. 
-
-  TEST: At this point, when you start the application
-  you should see questions and categories generated,
-  ten questions per page and pagination at the bottom of the screen for three pages.
-  Clicking on the page numbers should update the questions. 
-  '''
-
-  '''
-  @TODO: 
-  Create an endpoint to DELETE question using a question ID. 
-
-  TEST: When you click the trash icon next to a question, the question will be removed.
-  This removal will persist in the database and when you refresh the page. 
-  '''
 
   @app.route('/questions/<int:question_id>', methods=['DELETE'])
   def deleteQuestion(question_id):
@@ -86,14 +65,17 @@ def create_app(test_config=None):
 
   @app.route('/questions', methods=['POST'])
   def createQuestion():
-    questionData = request.get_json()
-    question = questionData.get('question')
-    answer = questionData.get('answer')
-    difficulty = questionData.get('difficulty')
-    category = questionData.get('category')
+    try:
+      questionData = request.get_json()
+      question = questionData.get('question')
+      answer = questionData.get('answer')
+      difficulty = questionData.get('difficulty')
+      category = questionData.get('category')
+    except:
+      abort(422)
     if ((question == '') or (answer == '') or
             (difficulty == '') or (category == '')):
-        abort(422)
+      abort(422)
     try:
       new_question = Question(question=question, answer=answer,
                                 difficulty=difficulty,
@@ -107,40 +89,74 @@ def create_app(test_config=None):
         'category': category
       })
     except Exception:
-        abort(422)
+      abort(422)
 
-  '''
-  @TODO: 
-  Create a POST endpoint to get questions based on a search term. 
-  It should return any questions for whom the search term 
-  is a substring of the question. 
+  @app.route('/questions/search', methods=['POST'])
+  def searchQuestion():
+    try:
+      searchData = request.get_json()
+      searchTerm = searchData.get('searchTerm', '')
+    except:
+      abort(422)
+      
+    try:
+      question = Question.query.filter(
+      Question.question.ilike(f'%{searchTerm}%')).all()
+      
+      if question == 0 or not question:
+        abort(404)
+      else:
+        current_questions = paginate_questions(request, question, QUESTIONS_PER_PAGE)
+        categories = [category['category'] for category in current_questions]
+        return jsonify({
+          'success': True,
+          'questions': current_questions,
+          'totalQuestions': len(current_questions),
+          'current_category': current_category
+        })
+    except Exception:
+      abort(404)
+  
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
+  def getQuestionsOnCategory(category_id):
+    try:
+      category_query = Category.query.filter_by(id=category_id).one_or_none()
+      questions = Question.query.filter_by(category=category_id).all()
+      total_questions = len(questions)
+      current_questions = paginate_questions(request, questions, QUESTIONS_PER_PAGE)
+      return jsonify({
+          'success': True,
+          'questions': current_questions,
+          'totalQuestions': total_questions,
+          'category': category_query.type
+      })
+    except Exception:
+      abort(404)
 
-  TEST: Search by any phrase. The questions list will update to include 
-  only question that include that string within their question. 
-  Try using the word "title" to start. 
-  '''
+  @app.route('/quizzes', methods=['POST'])
+  def quizPlay():
+    try:
+      category_id = request.get_json()['quiz_category']['id']
+      previous_questions = request.get_json()['previous_questions']
 
-  '''
-  @TODO: 
-  Create a GET endpoint to get questions based on category. 
+      if(category_id == 0):
+        questions = Question.query.filter(Question.id.notin_(previous_questions)).all()
+      else:
+        questions = Question.query.filter(Question.category == category_id).filter(Question.id.notin_(previous_questions)).all()
 
-  TEST: In the "List" tab / main screen, clicking on one of the 
-  categories in the left column will cause only questions of that 
-  category to be shown. 
-  '''
+      if not questions:
+        next_question = None
+      else:
+        new_question = random.choices(questions, k=1)
+        next_question = (Question.query.filter_by(id = new_question[0].id).one_or_none()).format()
+      
+      return jsonify({
+        "success": True,
+        "question": next_question
+      })
 
-
-  '''
-  @TODO: 
-  Create a POST endpoint to get questions to play the quiz. 
-  This endpoint should take category and previous question parameters 
-  and return a random questions within the given category, 
-  if provided, and that is not one of the previous questions. 
-
-  TEST: In the "Play" tab, after a user selects "All" or a category,
-  one question at a time is displayed, the user is allowed to answer
-  and shown whether they were correct or not. 
-  '''
+    except:
+      abort(422)
 
   @app.errorhandler(404)
   def not_found(error):
