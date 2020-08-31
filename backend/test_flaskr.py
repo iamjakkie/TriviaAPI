@@ -83,7 +83,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
         # confirm response has element equal "message": "resource not found"
-        self.assertEqual(data['message'], 'resource not found')
+        self.assertEqual(data['message'], 'Resource not found')
 
     def test_sucsse_delete_question(self):
         '''
@@ -107,7 +107,7 @@ class TriviaTestCase(unittest.TestCase):
         # confirm the status response code is 422
         self.assertEqual(res.status_code, 422)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "unprocessable")
+        self.assertEqual(data['message'], "Unprocessable")
 
     def test_create_new_question(self):
         '''
@@ -130,7 +130,7 @@ class TriviaTestCase(unittest.TestCase):
         # confirm the status response code is 422
         self.assertEqual(res.status_code, 422)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], 'unprocessable')
+        self.assertEqual(data['message'], 'Unprocessable')
 
     def test_search_in_questions(self):
         '''
@@ -138,23 +138,13 @@ class TriviaTestCase(unittest.TestCase):
         :pass
         '''
         data_json = {
-            'searchTerm': 'What boxer\'s original name is Cassius Clay'
+            'searchTerm': 'Cassius Clay'
         }
         res = self.client().post('/questions/search', json=data_json)
         data = json.loads(res.data)
         # check if the status code = 200
         self.assertEqual(res.status_code, 200)
         self.assertIsNotNone(data['questions'])
-
-    def test_search_in_questions_no_data(self):
-        '''
-        Test insert question without data in db
-        :pass
-        '''
-        res = self.client().post('/questions/search', json={'searchTerm': ''})
-        data = json.loads(res.data)
-        # confirm the status response code is 422
-        self.assertEqual(res.status_code, 422)
 
     def test_search_in_questions_no_data_in_db(self):
         '''
@@ -176,8 +166,8 @@ class TriviaTestCase(unittest.TestCase):
         # check if the status code = 200
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
-        self.assertEqual(data['categories'], 'Art')
-        self.assertTrue(data['categories'])
+        self.assertEqual(data['category'], 'History')
+        self.assertTrue(data['category'])
         self.assertTrue(data['totalQuestions'])
         self.assertTrue(data['questions'])
 
@@ -239,8 +229,7 @@ class TriviaTestCase(unittest.TestCase):
         }
         res = self.client().post('/quizzes', json=data_json)
         data = json.loads(res.data)
-        # confirm the status response code is 400
-        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.status_code, 422)
         self.assertEqual(data['success'], False)
 
 

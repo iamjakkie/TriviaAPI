@@ -94,15 +94,10 @@ def create_app(test_config=None):
   @app.route('/questions/search', methods=['POST'])
   def searchQuestion():
     try:
-      searchData = request.get_json()
-      searchTerm = searchData.get('searchTerm', '')
-    except:
-      abort(422)
+      searchData = request.get_json().get('searchTerm', '')
+      searchTerm = "%{}%".format(searchData)
       
-    try:
-      question = Question.query.filter(
-      Question.question.ilike(f'%{searchTerm}%')).all()
-      
+      question = Question.query.filter(Question.question.ilike(searchTerm)).all()
       if question == 0 or not question:
         abort(404)
       else:
@@ -112,7 +107,7 @@ def create_app(test_config=None):
           'success': True,
           'questions': current_questions,
           'totalQuestions': len(current_questions),
-          'current_category': current_category
+          'current_category': categories
         })
     except Exception:
       abort(404)
